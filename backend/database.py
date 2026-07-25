@@ -5,7 +5,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DB_PATH = os.getenv("DB_PATH", "data/finpulse.db")
+if os.getenv("VERCEL"):
+    DB_PATH = "/tmp/finpulse.db"
+else:
+    DB_PATH = os.getenv("DB_PATH", "data/finpulse.db")
+
 DB_DIR = os.path.dirname(DB_PATH)
 if DB_DIR:
     os.makedirs(DB_DIR, exist_ok=True)
