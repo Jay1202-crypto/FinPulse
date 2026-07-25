@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinPulse - Stock Market Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo-group">
+                <div class="logo-icon">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M3 17L9 11L13 15L21 7" stroke="url(#grad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M17 7H21V11" stroke="url(#grad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <defs><linearGradient id="grad" x1="3" y1="7" x2="21" y2="17"><stop stop-color="#60a5fa"/><stop offset="1" stop-color="#a78bfa"/></linearGradient></defs>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="logo">FinPulse</h1>
+                    <span class="logo-sub">Market Dashboard</span>
+                </div>
+            </div>
+            <button class="sidebar-toggle" id="sidebar-toggle" title="Toggle sidebar">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+            </button>
+        </div>
+
+        <div class="sidebar-search">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input type="text" id="search-input" placeholder="Search stocks...">
+        </div>
+
+        <div class="sidebar-stats">
+            <div class="stat-pill">
+                <span class="stat-label">Total MCap</span>
+                <span class="stat-value" id="total-mcap">--</span>
+            </div>
+            <div class="stat-pill">
+                <span class="stat-label">Stocks</span>
+                <span class="stat-value" id="stock-count">--</span>
+            </div>
+        </div>
+
+        <div class="sidebar-stocks" id="sidebar-stocks"></div>
+
+        <div class="sidebar-footer">
+            <button class="btn-refresh" id="btn-refresh" title="Refresh data">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+                <span>Refresh</span>
+            </button>
+        </div>
+    </aside>
+
+    <main class="content" id="content">
+        <div class="topbar">
+            <div class="topbar-left">
+                <button class="mobile-menu" id="mobile-menu">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor"><path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                </button>
+                <h2 class="page-title" id="page-title">Market Overview</h2>
+            </div>
+            <div class="topbar-right">
+                <div class="market-badge" id="market-badge">
+                    <span class="badge-dot"></span>
+                    <span id="market-status-text">--</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="scroll-area">
+            <section class="section overview-section" id="overview-section">
+                <div class="metrics-row">
+                    <div class="metric-card">
+                        <div class="metric-icon green">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+                        </div>
+                        <div class="metric-body">
+                            <span class="metric-label">Top Gainer</span>
+                            <span class="metric-value" id="top-gainer-val">--</span>
+                            <span class="metric-sub" id="top-gainer-name">--</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon red">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+                        </div>
+                        <div class="metric-body">
+                            <span class="metric-label">Top Loser</span>
+                            <span class="metric-value" id="top-loser-val">--</span>
+                            <span class="metric-sub" id="top-loser-name">--</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon blue">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                        </div>
+                        <div class="metric-body">
+                            <span class="metric-label">Tracked Stocks</span>
+                            <span class="metric-value" id="tracked-count">--</span>
+                            <span class="metric-sub">NIFTY 50 Blue Chips</span>
+                        </div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-icon purple">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+                        </div>
+                        <div class="metric-body">
+                            <span class="metric-label">Total Market Cap</span>
+                            <span class="metric-value" id="total-mcap-hero">--</span>
+                            <span class="metric-sub">All 20 Stocks Combined</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-row gainers-losers-row">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Top Gainers</h3>
+                        </div>
+                        <div id="gainers-list" class="stock-list"></div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>Top Losers</h3>
+                        </div>
+                        <div id="losers-list" class="stock-list"></div>
+                    </div>
+                </div>
+
+                <div class="charts-row">
+                    <div class="card chart-card wide">
+                        <div class="card-header">
+                            <h3>Fundamental Comparison</h3>
+                            <select id="fund-metric" class="select-control">
+                                <option value="market_cap">Market Cap</option>
+                                <option value="pe_ratio">P/E Ratio</option>
+                                <option value="eps">EPS</option>
+                                <option value="dividend_yield">Dividend Yield</option>
+                            </select>
+                        </div>
+                        <div class="chart-body">
+                            <canvas id="fund-chart"></canvas>
+                        </div>
+                    </div>
+                    <div class="card chart-card">
+                        <div class="card-header">
+                            <h3>Sector Breakdown</h3>
+                        </div>
+                        <div class="chart-body">
+                            <canvas id="sector-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Compare Section -->
+                <div class="compare-section" id="compare-section">
+                    <div class="card compare-card">
+                        <div class="card-header">
+                            <h3>Compare Stocks</h3>
+                            <span class="compare-hint">Select two stocks to overlay their normalized prices</span>
+                        </div>
+                        <div class="compare-controls">
+                            <div class="compare-select-group">
+                                <label>Stock A</label>
+                                <select id="compare-a" class="select-control"></select>
+                            </div>
+                            <div class="compare-vs">vs</div>
+                            <div class="compare-select-group">
+                                <label>Stock B</label>
+                                <select id="compare-b" class="select-control"></select>
+                            </div>
+                            <button class="btn-compare" id="btn-compare">Compare</button>
+                        </div>
+                        <div class="chart-body" style="height:320px;">
+                            <div class="chart-placeholder" id="compare-placeholder">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M21 3l-7 7"/><path d="M3 3l7 7"/><path d="M16 21h5v-5"/><path d="M8 21H3v-5"/><path d="M21 21l-7-7"/><path d="M3 21l7-7"/></svg>
+                                <p>Pick two stocks and hit Compare</p>
+                            </div>
+                            <canvas id="compare-chart" style="display:none;"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Financial Ratio Heatmap -->
+                <div class="heatmap-section">
+                    <div class="card heatmap-card">
+                        <div class="card-header">
+                            <h3>Financial Ratio Heatmap</h3>
+                            <span class="compare-hint">Color-coded by relative strength across all 20 stocks</span>
+                        </div>
+                        <div class="heatmap-grid" id="heatmap-grid"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section detail-section" id="detail-section" style="display:none;">
+                <button class="btn-back" id="btn-back">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                    Back to Overview
+                </button>
+                <div class="detail-hero" id="detail-hero"></div>
+                <div class="detail-stats-grid" id="detail-stats"></div>
+                <div class="card chart-card full-width">
+                    <div class="card-header">
+                        <h3 id="detail-chart-title">Price History</h3>
+                        <div class="chart-controls">
+                            <button class="chart-type-btn active" data-type="candle" title="Candlestick + Volume">Candle</button>
+                            <button class="chart-type-btn" data-type="line" title="Line Chart">Line</button>
+                            <span class="chart-sep">|</span>
+                            <button class="period-btn" data-period="1mo">1M</button>
+                            <button class="period-btn" data-period="3mo">3M</button>
+                            <button class="period-btn" data-period="6mo">6M</button>
+                            <button class="period-btn active" data-period="1y">1Y</button>
+                            <button class="period-btn" data-period="2y">2Y</button>
+                        </div>
+                    </div>
+                    <div class="chart-body tall">
+                        <canvas id="detail-price-chart"></canvas>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <div class="loading-overlay" id="loading-overlay">
+        <div class="loader">
+            <div class="loader-ring"></div>
+            <div class="loader-ring"></div>
+            <div class="loader-ring"></div>
+        </div>
+        <p class="loading-text">Fetching market data...</p>
+        <p class="loading-sub">First run may take a few minutes</p>
+    </div>
+
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/charts.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
