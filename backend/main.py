@@ -1,6 +1,5 @@
 import os
 import logging
-import threading
 from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -10,7 +9,7 @@ from fastapi.responses import FileResponse
 from backend.database import engine, SessionLocal, Base
 from backend.routes.stocks import router as stocks_router
 from backend.routes.market import router as market_router
-from backend.services.updater import initial_data_load
+from backend.services.updater import initial_data_load, fetch_all_stocks
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -18,24 +17,36 @@ logger = logging.getLogger(__name__)
 ROOT_DIR = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = ROOT_DIR / "frontend"
 
+_data_loaded = False
 
-def run_initial_load():
-    logger.info("Background: starting initial data load...")
+
+def _background_fetch():
+    global _data_loaded
+    logger.info("Background: starting full data fetch...")
+    db = SessionLocal()
+    try:
+        fetch_all_stocks(db)
+    finally:
+        db.close()
+    _data_loaded = True
+    logger.info("Background: full data fetch complete.")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global _data_loaded
+    Base.metadata.create_all(bind=engine)
+    logger.info("Database tables ensured.")
+
     db = SessionLocal()
     try:
         initial_data_load(db)
     finally:
         db.close()
-    logger.info("Background: initial data load finished.")
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
-    logger.info("Database tables ensured.")
-
-    loader_thread = threading.Thread(target=run_initial_load, daemon=True)
-    loader_thread.start()
+    import threading
+    t = threading.Thread(target=_background_fetch, daemon=True)
+    t.start()
 
     yield
 
@@ -63,7 +74,7 @@ def serve_dashboard():
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok", "service": "FinPulse"}
+    return {"status": "ok", "service": "FinPulse", "data_loaded": _data_loaded}
 
 
 if __name__ == "__main__":

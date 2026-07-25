@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from backend.database import get_db
 from backend.models import Company, StockPrice, Fundamental, StockResponse, StockDetailResponse, PricePoint
+from backend.services.updater import fetch_stock_if_missing
 
 router = APIRouter(prefix="/api/stocks", tags=["stocks"])
 
@@ -51,6 +52,8 @@ def get_stock(
     company = db.query(Company).filter(Company.ticker == ticker).first()
     if not company:
         raise HTTPException(status_code=404, detail=f"Stock {ticker} not found")
+
+    fetch_stock_if_missing(db, ticker)
 
     latest_price = (
         db.query(StockPrice)
