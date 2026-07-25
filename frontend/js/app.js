@@ -5,7 +5,6 @@ let currentPeriod = '1y';
 let currentChartType = 'candle';
 let activeTab = 'overview';
 let marketSummary = null;
-let _pollTimer = null;
 
 const sectorClassMap = {
     Banking: 'sector-banking', IT: 'sector-it', FMCG: 'sector-fmcg',
@@ -449,30 +448,6 @@ async function init() {
     setInterval(updateMarketStatus, 60000);
     try { await Promise.all([loadMarketSummary(), loadStocks()]); } catch (err) { console.error('Init error:', err); }
     hideLoading();
-    startDataPoll();
-}
-
-function startDataPoll() {
-    if (_pollTimer) return;
-    const hasData = allStocks.some(s => s.latest_close != null);
-    if (hasData) return;
-    const statusEl = document.getElementById('market-status-text');
-    const origText = statusEl ? statusEl.textContent : '';
-    if (statusEl) statusEl.textContent = 'Loading market data...';
-    document.getElementById('loading-overlay').classList.remove('hidden');
-    document.querySelector('.loading-text').textContent = 'Fetching market data from Yahoo Finance...';
-    document.querySelector('.loading-sub').textContent = 'This may take up to a minute on first load';
-    _pollTimer = setInterval(async () => {
-        try {
-            await Promise.all([loadMarketSummary(), loadStocks()]);
-            const nowHasData = allStocks.some(s => s.latest_close != null);
-            if (nowHasData) {
-                clearInterval(_pollTimer); _pollTimer = null;
-                hideLoading();
-                if (statusEl) statusEl.textContent = origText;
-            }
-        } catch (e) { /* retry */ }
-    }, 5000);
 }
 
 document.addEventListener('DOMContentLoaded', () => {

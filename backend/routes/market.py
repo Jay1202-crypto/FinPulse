@@ -1,16 +1,32 @@
+import logging
+import threading
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 from backend.database import get_db
 from backend.models import Company, StockPrice, Fundamental, MarketSummaryResponse
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/market-summary", tags=["market"])
+
+_fetch_lock = threading.Lock()
+
+
+def ensure_data(db: Session):
+    has_data = db.query(StockPrice).first()
+    if not has_data:
+        if _fetch_lock.acquire(blocking=False):
+            try:
+                from backend.routes.stocks import _fetch_live_overview
+                _fetch_live_overview(db)
+            finally:
+                _fetch_lock.release()
 
 
 @router.get("", response_model=MarketSummaryResponse)
 def market_summary(db: Session = Depends(get_db)):
-    companies = db.query(Company).all()
+    ensure_data(db)
 
+    companies = db.query(Company).all()
     total_market_cap = 0.0
     stock_data = []
 
@@ -44,12 +60,8 @@ def market_summary(db: Session = Depends(get_db)):
         change_pct = ((current - previous) / previous * 100) if current and previous and previous != 0 else 0
 
         stock_data.append({
-            "ticker": c.ticker,
-            "name": c.name,
-            "sector": c.sector,
-            "close": current,
-            "change_pct": round(change_pct, 2),
-            "market_cap": mcap,
+            "ticker": c.ticker, "name": c.name, "sector": c.sector,
+            "close": current, "change_pct": round(change_pct, 2), "market_cap": mcap,
         })
 
     stock_data.sort(key=lambda x: x["change_pct"], reverse=True)
@@ -69,7 +81,6 @@ def market_summary(db: Session = Depends(get_db)):
     return MarketSummaryResponse(
         total_market_cap=round(total_market_cap, 2),
         stock_count=len(companies),
-        top_gainers=top_gainers,
-        top_losers=top_losers,
+        top_gainers=top_gainers, top_losers=top_losers,
         sector_breakdown=sector_breakdown,
     )
