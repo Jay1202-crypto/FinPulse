@@ -33,26 +33,48 @@ def _fetch_live_overview(db: Session):
             df = df.dropna(how="all")
             if df.empty:
                 continue
-            latest = df.iloc[-1]
-            existing = db.query(StockPrice).filter(
-                StockPrice.ticker == ticker, StockPrice.trade_date == today
-            ).first()
-            if existing:
-                existing.open = round(float(latest["Open"]), 2)
-                existing.high = round(float(latest["High"]), 2)
-                existing.low = round(float(latest["Low"]), 2)
-                existing.close = round(float(latest["Close"]), 2)
-                existing.volume = int(latest["Volume"])
-            else:
-                db.add(StockPrice(
-                    ticker=ticker, trade_date=today,
-                    open=round(float(latest["Open"]), 2), high=round(float(latest["High"]), 2),
-                    low=round(float(latest["Low"]), 2), close=round(float(latest["Close"]), 2),
-                    volume=int(latest["Volume"]),
-                ))
+            for row_date, row in df.iterrows():
+                trade_date = row_date.date()
+                existing = db.query(StockPrice).filter(
+                    StockPrice.ticker == ticker, StockPrice.trade_date == trade_date
+                ).first()
+                if existing:
+                    existing.open = round(float(row["Open"]), 2)
+                    existing.high = round(float(row["High"]), 2)
+                    existing.low = round(float(row["Low"]), 2)
+                    existing.close = round(float(row["Close"]), 2)
+                    existing.volume = int(row["Volume"])
+                else:
+                    db.add(StockPrice(
+                        ticker=ticker, trade_date=trade_date,
+                        open=round(float(row["Open"]), 2), high=round(float(row["High"]), 2),
+                        low=round(float(row["Low"]), 2), close=round(float(row["Close"]), 2),
+                        volume=int(row["Volume"]),
+                    ))
             db.commit()
         except Exception as e:
             logger.error(f"Error processing {ticker}: {e}")
+            db.rollback()
+
+    for ticker in tickers:
+        try:
+            existing_fund = db.query(Fundamental).filter(
+                Fundamental.ticker == ticker, Fundamental.data_date == today
+            ).first()
+            if existing_fund:
+                continue
+            info = yf.Ticker(ticker).info
+            db.add(Fundamental(
+                ticker=ticker, data_date=today,
+                market_cap=info.get("marketCap"),
+                pe_ratio=info.get("trailingPE") or info.get("forwardPE"),
+                eps=info.get("trailingEps"),
+                dividend_yield=info.get("dividendYield"),
+                book_value=info.get("bookValue"),
+            ))
+            db.commit()
+        except Exception as e:
+            logger.error(f"Error fetching fundamentals for {ticker}: {e}")
             db.rollback()
 
 
